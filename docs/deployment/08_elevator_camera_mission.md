@@ -48,7 +48,7 @@
 Jetson 호스트에서 실행한다. 보정·숫자 등록 파일을 현장에서 수정했다면 `git status`에 나온 변경을 보관하고 병합한다. `reset --hard`로 덮어쓰지 않는다.
 
 ```bash
-cd ~/Code_Space-2026-10-06
+cd ~/PackagU
 git status --short --branch
 git pull --ff-only origin 2026-10-06
 ```

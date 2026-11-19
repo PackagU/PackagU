@@ -1,7 +1,7 @@
 # Portability Policy and Jetson Deployment
 
 > 목적: 지금 데스크톱 시뮬에서 도는 코드를 **수정 없이** Jetson Xavier NX 컨테이너에 올리기 위한 규칙과 절차.
-> 검사기: `python3 scripts/check_portability.py` (CI에서도 실행). AGENTS.md 필수 규칙 13이 이 문서를 가리킨다.
+> 검사기: `python3 scripts/check_portability.py`.
 
 ## 1. 왜 필요한가
 
@@ -28,8 +28,8 @@
 
 | 태그 | 용도 | 베이스 | 포함 |
 |------|------|--------|------|
-| `ghcr.io/packagu/ros2-humble-slam:humble` | 개발 (amd64) | `osrf/ros:humble-desktop-full` | Gazebo, RViz, Nav2, SLAM Toolbox |
-| `ghcr.io/packagu/ros2-humble-slam:humble-jetson` | 실기 (aarch64) | `ros:humble-ros-base` | Nav2, SLAM Toolbox, rplidar (GUI 제외) |
+| `packagu/ros2-humble-slam:humble` | 개발 (amd64) | `osrf/ros:humble-desktop-full` | Gazebo, RViz, Nav2, SLAM Toolbox |
+| `packagu/ros2-humble-slam:humble-jetson` | 실기 (aarch64) | `ros:humble-ros-base` | Nav2, SLAM Toolbox, rplidar (GUI 제외) |
 
 원칙:
 
@@ -49,20 +49,19 @@
 docker buildx create --use 2>/dev/null || true
 docker buildx build --platform linux/arm64 \
   -f docker/Dockerfile.jetson \
-  -t ghcr.io/packagu/ros2-humble-slam:humble-jetson \
-  --push docker/
+  -t packagu/ros2-humble-slam:humble-jetson \
+  --load docker/
 ```
 
 ### 4.2 Jetson에서 기동
 
 ```bash
-git clone https://github.com/PackagU/Code_Space.git && cd Code_Space
+git clone https://github.com/PackagU/PackagU.git && cd PackagU
 python3 scripts/generate_kku_worlds.py && python3 scripts/generate_kku_maps.py  # 맵/월드 생성(.pgm은 git 미포함)
-docker login ghcr.io   # GitHub PAT (read:packages)
 docker compose -f docker/compose/docker-compose.jetson.yml up -d
 docker exec -it ros2_humble bash
 # 컨테이너 안:
-cd /ros2_ws && colcon build --symlink-install && source install/setup.bash
+cd /ros2_ws && colcon build --symlink-install --base-paths src && source install/setup.bash
 ```
 
 ### 4.3 부하 검증 (통과 기준 포함)
@@ -93,7 +92,7 @@ python3 integration/gazebo_world_swap/scripts/test_smoke_scripts_contract.py
 bash integration/gazebo_world_swap/scripts/run_l3_world_swap_smoke.sh   # 컨테이너
 ```
 
-CI(`.github/workflows/check.yml`)는 이 중 오프라인 검사를 PR마다 자동 실행한다.
+개발 저장소에서는 `scripts/run_offline_tests.sh`로 오프라인 계약 검사를 묶어 점검했다.
 
 ### 4.5 분산 시뮬 부하테스트 — 데스크톱 Gazebo + Jetson 실전 스택
 
@@ -152,10 +151,8 @@ costmap 클리어 + belief 드리프트 재정위(>0.3m, 시뮬 오라클)를 �
   전의 기존 컨테이너에는 `apt-get update && apt-get install -y ros-humble-gazebo-msgs` 1회 주입
   (docker restart 에는 유지되고, 컨테이너 recreate 시에만 재설치).
 - 두 머신 모두 컨테이너 이름이 `ros2_humble` — 반드시 자기 머신 터미널에서 실행할 것.
-  (참고: Jetson hostname 이 `JETSON_HOSTNAME` 로 되어 있어 프롬프트로 머신을 구분하면 안 된다.)
-- Jetson 저장소는 bundle 기반 — 데스크톱에서 bundle 갱신 후
-  `scp ~/code_space.bundle JETSON_HOST:~/code_space.bundle`, Jetson 에서 로컬 수정 파일
-  `git checkout -- <파일>` 후 `git pull origin <브랜치>`, compose 장치 sed 재적용.
+  (참고: 두 머신의 컨테이너 이름이 같으므로 터미널 호스트명을 확인해 구분한다.)
+- 오프라인 환경에서 Jetson 저장소를 동기화할 때는 `git bundle`로 전달해 반영한다.
 
 **DDS discovery (실측 확정)**: 이 Wi-Fi 환경은 멀티캐스트 discovery 가 막혀 있어
 `scripts/fastdds_lan_peers.xml` (unicast peers, 양쪽 IP 명시) 를 **양쪽 모두** 적용해야 한다.

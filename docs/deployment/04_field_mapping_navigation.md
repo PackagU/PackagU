@@ -52,7 +52,7 @@
 현장 승인 후 Arduino IDE에서 다음 스케치를 연다.
 
 ```text
-~/Code_Space/firmware/opencr/opencr_drive_bridge.ino
+~/PackagU/firmware/opencr/opencr_drive_bridge.ino
 ```
 
 보드는 OpenCR, USB 포트는 실제 OpenCR 포트를 선택한다. 이 스케치는 사용자가 확인한 Dynamixel ID 1/2, Protocol 2.0, 1 Mbps를 사용하며, Jetson USB CDC는 115200 baud다. 업로드 후 Serial Monitor는 반드시 닫는다.
@@ -63,7 +63,7 @@
 
 ```bash
 ssh JETSON_USER@JETSON_IP
-cd ~/Code_Space
+cd ~/PackagU
 systemctl --user stop jetson-thermal-watchdog-v2.service 2>/dev/null || true
 readlink -f /dev/rplidar
 readlink -f /dev/opencr
@@ -92,7 +92,7 @@ docker exec -it -w /ros2_ws ros2_humble bash -lc \
 터미널 A에서 베이스를 시작한다. `ENABLE_DRIVE=1`은 실제 OpenCR 포트를 열지만, 새 명령이 없으면 0 RPM만 전송한다.
 
 ```bash
-cd ~/Code_Space
+cd ~/PackagU
 ENABLE_DRIVE=1 \
 LASER_X=-0.1015 LASER_Y=0 LASER_Z=0.750 LASER_YAW=0 \
 ./scripts/start_field_base.sh
@@ -121,14 +121,14 @@ docker exec -it -w /ros2_ws ros2_humble bash -lc \
 터미널 B:
 
 ```bash
-cd ~/Code_Space
+cd ~/PackagU
 ./scripts/start_field_mapping.sh
 ```
 
 터미널 C:
 
 ```bash
-cd ~/Code_Space
+cd ~/PackagU
 ./scripts/teleop.sh
 ```
 
@@ -149,7 +149,7 @@ cd ~/Code_Space
 SLAM이 실행 중인 상태에서 터미널 D:
 
 ```bash
-cd ~/Code_Space
+cd ~/PackagU
 ./scripts/save_field_map.sh F1
 ```
 
@@ -162,7 +162,7 @@ cd ~/Code_Space
 터미널 B에서 방금 출력된 지도 경로를 넣는다.
 
 ```bash
-cd ~/Code_Space
+cd ~/PackagU
 FLOOR=F1 ./scripts/start_field_navigation.sh \
   /ros2_ws/maps/field/f1/방금_생성된_지도.yaml
 ```

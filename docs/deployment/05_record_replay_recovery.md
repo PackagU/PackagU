@@ -4,10 +4,10 @@
 
 ## 1. 기록
 
-Jetson 호스트의 `Code_Space`에서 base와 mapping을 먼저 시작한 뒤 별도 터미널에서 실행한다.
+Jetson 호스트의 저장소 루트(`~/PackagU`)에서 base와 mapping을 먼저 시작한 뒤 별도 터미널에서 실행한다.
 
 ```bash
-cd ~/Code_Space
+cd ~/PackagU
 ./scripts/record_field_bag.sh
 ```
 

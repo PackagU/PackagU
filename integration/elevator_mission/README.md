@@ -1,43 +1,23 @@
-# Elevator Mission Test Workspace
+# `integration/elevator_mission` — 엘리베이터 배송 미션 상태머신
 
-작성일: 2026-05-28
+루트 ROS 2 워크스페이스(`src/`)와 분리된 overlay 패키지로, 엘리베이터를 포함한 실내 배송 미션의 Behavior Tree 상태머신과 카메라 기반 버튼/층수 연동 실행 구성을 담고 있다.
 
-## 목적
+## 주요 구성
 
-이 폴더는 기존 @src/ 패키지를 건드리지 않고 엘리베이터 층 이동 상태머신과 Nav2 mission PoC를 구현하기 위한 독립 테스트 워크스페이스다.
+| 경로 | 역할 |
+|---|---|
+| `src/elevator_mission_pkg/` | Behavior Tree 미션 노드, 직교 경로 라우터, 웨이포인트 레지스트리, 카메라 미션 launch(`launch/elevator_camera_mission.launch.py`) |
+| `src/elevator_sim_pkg/` | 초기 엘리베이터 상태 발행 시뮬레이션 보조 패키지 |
+| `config/` | 가상 건물 웨이포인트(`kku_nav_points.yaml`), 배송 시나리오(`delivery_missions.yaml`) |
+| `scripts/` | 미션 동작·직교 라우팅·Nav2 튜닝 오프라인 단위 테스트 |
+| `test_mission_safety_fsm.py` | 미션 안전 상태머신 전이 검증 |
 
-구현자는 먼저 @docs/simulation_test/05_elevator_state_machine/01_claude_handoff.md 를 읽고, 그 다음 @docs/simulation_test/05_elevator_state_machine/02_implementation_plan.md 의 체크리스트를 순서대로 수행한다.
+## 빌드 참고 (overlay)
 
-## 경계
-
-- 이 폴더 아래 파일은 새로 만들거나 수정해도 된다.
-- 기존 @src/common_pkg/, @src/slam_pkg/, @src/drive_pkg/, @src/robot_arm_pkg/ 는 읽기만 한다.
-- 검증 전에는 이 폴더의 코드를 기존 ROS2 workspace로 옮기지 않는다.
-- MVP에서는 custom msg/srv 패키지를 만들지 않는다.
-
-## 목표 구조
-
-```text
-integration/elevator_mission/
-├── README.md
-├── src/
-│   ├── elevator_mission_pkg/
-│   ├── elevator_sim_pkg/
-│   └── floor_orchestrator_pkg/
-├── config/
-│   ├── kku_nav_points.yaml
-│   └── delivery_missions.yaml
-├── launch/
-├── scripts/
-└── docs/
-```
-
-## 실행 개요
+루트 워크스페이스(`src/`)를 먼저 빌드·source한 뒤 이 폴더에서 별도로 빌드한다(`integration/COLCON_IGNORE`로 루트 빌드의 자동 혼입을 차단한다).
 
 ```bash
 cd integration/elevator_mission
 colcon build --symlink-install
 source install/setup.bash
 ```
-
-상세 구현과 테스트 순서는 @docs/simulation_test/05_elevator_state_machine/02_implementation_plan.md 를 따른다.

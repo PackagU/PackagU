@@ -15,14 +15,14 @@
 Jetson에서 mapping용 컨테이너와 physical base를 먼저 시작한다. `ENABLE_DRIVE=1`은 실제 OpenCR를 열므로 현장 승인과 바퀴 들림 확인 뒤에만 사용한다.
 
 ```bash
-cd ~/Code_Space
+cd ~/PackagU
 ENABLE_DRIVE=1 ./scripts/start_field_base.sh
 ```
 
 별도 Jetson SSH 터미널에서 화면 서버를 시작한다.
 
 ```bash
-cd ~/Code_Space
+cd ~/PackagU
 ./scripts/start_field_web_ui.sh
 ```
 

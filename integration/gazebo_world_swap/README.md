@@ -1,62 +1,19 @@
-# Gazebo World Swap Workspace
+# `integration/gazebo_world_swap` — 시뮬레이션 층별 Gazebo 월드 교체
 
-This workspace contains the simulation-only Gazebo world swap work for the
-elevator auto map switch PoC.
+`auto_floor_orchestrator_pkg`가 Nav2 지도를 층별로 교체할 때 Gazebo 시뮬레이션 월드도 함께 목표층 구조로 전환해 `/scan`·AMCL·Nav2가 일관되게 동작하도록 만드는 시뮬레이션 전용 overlay다.
 
-## Purpose
+## 주요 구성
 
-When the auto floor orchestrator changes the Nav2 map from F1 to F2, Gazebo
-must also expose F2 geometry so `/scan`, AMCL, and Nav2 all agree.
+| 경로 | 역할 |
+|---|---|
+| `src/gazebo_world_swap_pkg/` | 층 전환 트리거를 받아 Gazebo 건물 모델을 교체하는 ROS 2 노드 |
+| `pedestrian/` | 복도 동적 보행자 장애물 시뮬레이션 보조 노드·모델 |
+| `scripts/` | 스왑 트리거·월드 모델·계약 검증 오프라인 테스트 및 왕복 스모크 러너(`run_l3_world_swap_smoke.sh`, `run_roundtrip_repeat.sh`) |
 
-## Layout
-
-| Path | Role |
-|------|------|
-| `plan/` | Implementation plan, increment log, design decisions |
-| `src/` | Simulation-only ROS2 package for world swap |
-| `scripts/` | Offline tests and one-command runners |
-| `verification/` | Captured command outputs and verification summaries |
-| `debug/` | Debug notes when a loop fails twice or more |
-
-## Current Status
-
-Implemented and verified on 2026-06-25.
-Extended and re-verified on 2026-06-29 so the one-command smoke starts at the
-F1 elevator-front charge station, visits the F1 parcel pickup area, returns to
-the elevator, then performs the F1 to F2 world swap before the F2 delivery
-goal.
-
-## Quickstart
-
-Run this from the host while the `ros2_humble` container is running:
+## 빌드 참고 (overlay)
 
 ```bash
-docker exec -it ros2_humble bash
-cd /ros2_ws
-bash integration/gazebo_world_swap/scripts/run_l3_world_swap_smoke.sh
+cd integration/gazebo_world_swap
+colcon build --symlink-install
+source install/setup.bash
 ```
-
-For a human-observable run with RViz and processes left alive at the end:
-
-```bash
-WITH_RVIZ=true KEEP_RUNNING=1 bash integration/gazebo_world_swap/scripts/run_l3_world_swap_smoke.sh
-```
-
-Expected final lines:
-
-```text
-Goal finished with status: SUCCEEDED
-Goal finished with status: SUCCEEDED
-PASS world swap smoke
-status phase=ready pending=false current_floor=F2 map_loaded=true
-map width=498 height=348 origin=-2.46,-2.96
-entity kku_f2_building present
-entity kku_f1_building absent
-/scan has finite ranges
-Goal finished with status: SUCCEEDED
-```
-
-Logs are written to `integration/gazebo_world_swap/verification/latest/`.
-Set `KEEP_RUNNING=1` before the script if you want to leave the launched
-Gazebo/Nav2 stack alive after verification.
-Set `WITH_RVIZ=true` if you want Nav2 RViz to open during the run.
