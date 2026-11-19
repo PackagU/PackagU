@@ -4,22 +4,22 @@
 
 ROS 2 Humble, Nav2, SLAM Toolbox, OpenCR 1.0, Jetson Xavier NX, Arduino Uno.
 
-[팀과 역할](#팀과-역할) · [시스템 아키텍처](#시스템-아키텍처) · [핵심 기술 과제와 판단](#핵심-기술-과제와-판단) · [동작 흐름과 시연](#동작-흐름과-시연) · [검증 결과와 한계](#검증-결과와-한계)
+[팀과 역할](#팀과-역할) · [시스템 아키텍처](#시스템-아키텍처) · [핵심 기술 과제와 판단](#핵심-기술-과제와-판단) · [동작 흐름과 시연](#동작-흐름과-시연) · [피드백 반영 개선](#피드백-반영-개선) · [검증 결과와 한계](#검증-결과와-한계)
 
-<!-- VIDEO_SLOT: hero_gif -->
 <p align="center">
-  <img src="docs/media/robot_labeled.jpg" alt="PackagU 실물 로봇 측면 및 주요 부품" width="520" />
+  <img src="docs/media/e2e_demo.gif" alt="PackagU 신공학관 실물 배달 시연 (편집 하이라이트)" height="360" />
+  <img src="docs/media/robot_labeled.jpg" alt="PackagU 실물 로봇 측면 및 주요 부품" height="360" />
 </p>
-<p align="center"><sub>실물 사진 (2026-10 촬영, 부품 라벨 추가)</sub></p>
+<p align="center"><sub>왼쪽: 실물 주행 · 버튼 조작 · 배달 시연 (20초 하이라이트) · 오른쪽: 실물 로봇 부품 구성 (2026-10 촬영)</sub></p>
 
 ## 프로젝트 요약
 
 | 항목 | 내용 |
 |---|---|
 | 문제 | 엘리베이터 API가 없는 기존 건물에서 층간 무인 택배 배달 수행 |
-| 접근 방식 | 2륜 차동 SLAM/Nav2 주행, 팔 끝 웹캠 버튼 인식, 4 DOF 팔 직접 조작, Z축 지게팔 상하차 |
+| 접근 방식 | 2륜 차동 SLAM/Nav2 주행, 팔 끝 웹캠 버튼 · 층수 인식, 4 DOF 팔 직접 조작, Z축 지게팔 상하차 |
 | 핵심 환경 | Jetson Xavier NX(Docker · ROS 2 Humble), OpenCR 1.0, RPLiDAR A1m8, Arduino Uno + TB6600 |
-| 확인한 결과 | 가상 왕복 시뮬 10/10, Jetson 분산 시뮬 3/3, 실측 지도 E2E 시뮬 direct 4/4, 신공학관 복도 실물 Nav2 2/5, 강의실 v3 시뮬 4,112회 분석 |
+| 확인한 결과 | 실물 주행 · 엘리베이터 버튼 조작 · 배달 시연 하이라이트 확보, 신공학관 복도 실물 Nav2 2/5, 가상 왕복 시뮬 10/10, Jetson 분산 시뮬 3/3, 실측 지도 E2E 시뮬 direct 4/4, 강의실 v3 시뮬 4,112회 분석 |
 | 코드 기준 | `Final_Demo@db73e09` (2026-11-04). 공개 정리 시 Python 구문 검사와 정적 안전 감사를 마쳤고 Docker와 실기 재구동은 수행하지 않았다 |
 
 ## 해결하려던 문제
@@ -77,19 +77,35 @@ Nav2가 내는 `/cmd_vel`을 모터로 바로 보내면 센서 지연이나 통�
 
 ## 동작 흐름과 시연
 
-현장 E2E 진행기(`scripts/field_video_rehearsal.py`)는 F1 출발부터 택배 적재, 호출 버튼 조작, 층 전환, 하차, F1 복귀까지 26단계를 한 터미널에서 순서대로 밟는다.
-
-<!-- VIDEO_SLOT: clip_pickup -->
-<!-- VIDEO_SLOT: clip_call -->
-<!-- VIDEO_SLOT: clip_press -->
-<!-- VIDEO_SLOT: clip_unload_return -->
-<!-- VIDEO_SLOT: clip_sim -->
-
-*(실물 E2E와 시뮬레이션 영상 클립은 추후 이 위치에 첨부한다.)*
+현장 E2E 진행기(`scripts/field_video_rehearsal.py`)는 F1 출발부터 택배 적재, 호출 버튼 조작, 층 전환, 하차, F1 복귀까지 26단계를 한 터미널에서 순서대로 밟는다. 상단 시연 GIF(`docs/media/e2e_demo.gif`)에는 실물 로봇이 1층 복도에서 택배를 적재하고 승강장 호출 버튼과 엘리베이터 내부 4번 버튼을 웹캠으로 인식해 직접 누른 뒤 목적층에 배달하는 구간을 20초로 담았다.
 
 | 4 DOF 로봇팔 · 팔 끝 웹캠 (실물 사진) | RPLiDAR A1m8 · 버튼 누름 팁 (실물 사진) | 외형 콘셉트 (설계 그림) |
 |---|---|---|
 | <img src="docs/media/robot_arm.jpg" alt="4 DOF 로봇팔 실물" width="260" /> | <img src="docs/media/robot_sensor_top.jpg" alt="RPLiDAR 및 버튼 팁 실물" width="260" /> | <img src="docs/media/robot_concept.jpg" alt="외형 예상도 설계 그림" width="260" /> |
+
+## 피드백 반영 개선
+
+시연 피드백에서 나온 두 가지 문제를 하드웨어 설정과 제어 흐름에 반영했다.
+
+### 1. 적재 높이 제한 (로봇팔 간섭 방지)
+
+지게팔을 기존 최대 높이(500 mm)까지 올리면 택배 상단이 로봇팔 동작 영역까지 올라와 팔 전개와 웹캠 시야를 가렸다. 정면 초음파 센서(`firmware/lift_uno/lift_uno.ino`)가 상승 중 320펄스마다 거리를 재서 10 cm 미만이면 즉시 멈추게 했다. 지게팔 상승 높이도 85 mm 수준으로 낮춰 택배가 로봇팔 아래에 머물게 조정했다.
+
+<p align="center">
+  <img src="docs/media/lift_height_compare.jpg" alt="지게팔 상승 높이 개선 전후 비교 (500 mm vs 85 mm)" width="740" />
+</p>
+
+### 2. 층수 표시기 확인 후 엘리베이터 하차
+
+엘리베이터 문이 열리면 바로 내리는 방식에서는 중간층 정차 시 잘못 내릴 수 있다. 탑승 직후 로봇팔을 주행 자세(`front_view`)에서 층수 확인 자세(`floor_view`: J0 1500 · J1 1480 · J2 1670 µs, [`camera_views.json`](src/robot_arm_pkg/config/camera_views.json))로 전환한다. 팔 끝 웹캠 영상에서 Otsu 이진화와 7-segment 템플릿 IoU 매칭([`apps/floor_reader/`](apps/floor_reader/README.md))으로 현재 층을 읽고 목표층과 일치할 때만 하차 조건을 연다.
+
+<p align="center">
+  <img src="docs/media/arm_camera_views.jpg" alt="로봇팔 주행 자세와 층수 확인 자세 비교" width="740" />
+</p>
+<p align="center">
+  <img src="docs/media/floor_reader_ui.jpg" alt="floor_reader 4층 숫자 인식 화면 (일치 점수 0.79)" width="520" />
+</p>
+<p align="center"><sub>층수 인식기 테스트 화면 (목표 4층, 일치 점수 0.79)</sub></p>
 
 ## 검증 결과와 한계
 
@@ -97,6 +113,7 @@ Nav2가 내는 `/cmd_vel`을 모터로 바로 보내면 센서 지연이나 통�
 
 | 대상 | 환경 · 날짜 | 결과 | 판정 | 근거 · 한계 |
 |---|---|---|---|---|
+| 신공학관 실물 배달 시연 | 건물 복도 · 엘리베이터 실물 | 적재 → 호출 버튼 인식 · 누르기 → 탑승 · 4번 버튼 → 목적층 하차 확인 | 실물 검증 (하이라이트) | [`docs/media/e2e_demo.gif`](docs/media/e2e_demo.gif) (20초 편집본). 구간별 자율 · 수동 경계와 복귀 구간은 영상만으로 미확인 |
 | 신공학관 복도 Nav2 주행 | Jetson + RPLiDAR + OpenCR, F1 · F2 (2026-09-16) | 5회 중 2회 도착(F2 배달 244.1 s, F1 복귀 119.2 s), 3회 실패 | 실물 검증 | `goal_results.csv` 인용. 보관함과 F2 staging goal 실패 |
 | 지게팔 `lift_uno` 보드 대조 | Arduino Uno 실물 보드 (2026-10-29) | 플래시 덤프와 소스 일치(초음파 10 cm 정지, 10/302 µs, 12,800펄스) | 실물 검증 | [09_field_video_rehearsal.md](docs/deployment/09_field_video_rehearsal.md) §11. 진행기 연동 주행은 미실행 |
 | 가상 건물 왕복 · 분산 부하 | Gazebo + 보행자 5 + 장애물 2 (2026-08-21) | PC 10/10 통과, Jetson 분산 3/3 통과(RAM 피크 2.5 / 6.8 GB) | 시뮬레이션 검증 | 가상 치수 맵 기준 |

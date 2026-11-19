@@ -75,6 +75,14 @@ flowchart TB
 
 Nav2의 속도 명령 `/cmd_vel`은 `nav_safety_gate`를 통과한다. `/scan`이나 `/odom`이 끊기면 노드가 `/cmd_vel_safe`를 0으로 내린다. OpenCR 펌웨어는 호스트 명령이 0.5 s 이상 오지 않으면 모터를 세우고 바퀴 속도를 48 rpm 아래로 제한한다([02_opencr_serial_protocol.md](deployment/02_opencr_serial_protocol.md)).
 
+지게팔은 상승 중 정면 초음파 센서(`firmware/lift_uno/lift_uno.ino`)로 320펄스마다 박스 윗면 거리를 확인해 10 cm 미만이면 상승을 멈춘다. 택배가 로봇팔과 카메라 범위를 가리지 않도록 상승 높이를 기존 500 mm에서 85 mm 수준으로 줄이는 개선안을 적용했다.
+
+![지게팔 적재 높이 개선 비교](media/lift_height_compare.jpg)
+
+엘리베이터 탑승 직후에는 로봇팔을 주행 자세(`front_view`: J0 1500 · J1 1500 · J2 2000 µs)에서 층수 확인 자세(`floor_view`: J0 1500 · J1 1480 · J2 1670 µs, [`camera_views.json`](../src/robot_arm_pkg/config/camera_views.json))로 올린다. [`apps/floor_reader/app.py`](../apps/floor_reader/app.py)는 웹캠 ROI를 Otsu 이진화한 뒤 7-segment 템플릿과 IoU 매칭(`>= 0.70`, 마진 `>= 0.08`)으로 현재 층을 판정한다. 1.5 s 창 내 10프레임 중 8프레임 이상 목표층이 유지되면 `TARGET_FLOOR_DETECTED` 이벤트를 발행한다. 실제 하차 판정 스크립트(`scripts/floor_arrival_probe.py`)는 현재 영상 5회 연속 일치를 확인한다.
+
+![로봇팔 주행 자세와 층수 확인 자세](media/arm_camera_views.jpg)
+
 엘리베이터 층 전환 뒤에는 `ros_map_switch.py`와 `auto_floor_orchestrator_pkg`가 `/map_server/load_map`과 `/initialpose`를 순서대로 부른다. 두 모듈은 새 지도 크기와 원점이 costmap에 들어왔는지 확인한 뒤 다음 주행 목표를 보낸다.
 
 `apps/jetson_skill_tests/skilltests/`의 자율 상태머신은 현장과 시뮬레이션이 같은 코드를 쓴다. 실제 로봇에서는 `ros_adapters.py`를 연결하고 Gazebo에서는 `sim/real_maps/sim_adapters.py`로 바꾼다. 현장 운영 절차는 [08_elevator_camera_mission.md](deployment/08_elevator_camera_mission.md)와 [09_field_video_rehearsal.md](deployment/09_field_video_rehearsal.md)에 적었다.
