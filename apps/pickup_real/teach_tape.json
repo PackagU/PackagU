@@ -1,0 +1,69 @@
+{
+ "created": "2026-10-31 14:22:26",
+ "method": "tape motion calibration (focal only)",
+ "focal_scale": 1.0300000000000002,
+ "focal_source": "tape-measured camera distance 1.120 m",
+ "focal_scale_by_motion": 1.0720000000000003,
+ "position_scale": 1.0,
+ "fit_rms_m": 0.0005714908988650573,
+ "odom_m": [
+  0.115,
+  0.115
+ ],
+ "mount": {
+  "forward": 0.08,
+  "left": -0.11,
+  "yaw": 0.0
+ },
+ "predock_x": -0.6,
+ "target_y": 0.0,
+ "gap_m": 0.3,
+ "motion_heading_deg": 14.183824112140003,
+ "camera_yaw_by_motion_deg": -4.818125377263739,
+ "camera_heading_deg": [
+  9.073,
+  9.554,
+  9.47
+ ],
+ "cal_distance_m": 0.12,
+ "tape_centres_px": [
+  [
+   [
+    210.78,
+    78.335
+   ],
+   [
+    459.5,
+    95.0
+   ]
+  ],
+  [
+   [
+    217.055,
+    48.33
+   ],
+   [
+    447.975,
+    63.5
+   ]
+  ],
+  [
+   [
+    212.73,
+    79.58
+   ],
+   [
+    461.5,
+    97.0
+   ]
+  ]
+ ],
+ "note": "중심 간격·카메라 높이·roll·표식 높이는 설정 실측/가정값 그대로. 초점 배율만 움직여서 맞춤. 카메라 앞 오프셋·포크 끝·좌우 오프셋은 설정 가정값",
+ "vision_mode": "tape",
+ "teach_version": 1,
+ "center_spacing_m": 0.34,
+ "camera_height_m": 0.595,
+ "marker_center_height_m": 0.08,
+ "camera_roll_deg": 0.0,
+ "mount_update_note": "2026-10-31 사용자 현장 확인: 렌즈가 포크 중심보다 오른쪽 약 11 cm. 포크 중심=바퀴 중심선 가정. 초점 배율은 기존 줄자 보정 유지."
+}

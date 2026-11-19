@@ -1,0 +1,385 @@
+<?xml version="1.0"?>
+<!--
+  ============================================================
+  delivery_robot (HW팀 수동 작성 URDF) + Gazebo 시뮬 래퍼
+  ============================================================
+  원본: HW 담당이 Fusion 실측 기반으로 작성한 순수 URDF (RViz 표시용).
+  이 파일은 그 원본 geometry/inertia를 그대로 유지하면서 Gazebo 구동에
+  필요한 요소만 덧붙인 시뮬 버전이다.
+
+  원본 대비 변경/추가 사항 (모두 주석 ★SIM 으로 표기):
+   1. <robot> 에 xmlns:xacro 추가 (xacro 처리용)
+   2. LiDAR 링크/조인트 이름 laser_link -> laser
+      (SLAM/Nav2 가 /scan frame_id 를 "laser" 로 기대하므로 정렬)
+   3. 바퀴/캐스터 마찰(mu/kp/kd) gazebo 블록
+   4. diff_drive 플러그인 (wheel_separation=0.4194, wheel_diameter=0.066)
+   5. joint_state_publisher 플러그인 (좌우 바퀴 + lift_joint)
+   6. LiDAR ray 센서 플러그인 (360도, 8m, frame_name=laser)
+  실측 확정 시 ★ 표시 값은 원본과 함께 갱신할 것.
+-->
+<robot name="delivery_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- 현장 장착값 오버라이드. 기본값은 HW팀 r1.urdf v2(2026-09-13) 기준. -->
+  <xacro:arg name="laser_x" default="-0.117"/>
+  <xacro:arg name="laser_y" default="0.0"/>
+  <xacro:arg name="laser_z" default="0.667"/>
+  <xacro:arg name="laser_roll" default="0.0"/>
+  <xacro:arg name="laser_pitch" default="0.0"/>
+  <xacro:arg name="laser_yaw" default="0.0"/>
+
+  <!-- ===== 공통 재질(색상) ===== -->
+  <material name="grey">  <color rgba="0.7 0.7 0.7 1.0"/></material>
+  <material name="black"> <color rgba="0.1 0.1 0.1 1.0"/></material>
+  <material name="blue">  <color rgba="0.2 0.3 0.8 1.0"/></material>
+  <material name="orange"><color rgba="0.9 0.5 0.1 1.0"/></material>
+
+  <!-- ============================================================
+       base_footprint : 바닥 투영 프레임 (Nav2/odom 기준점)
+       ============================================================ -->
+  <link name="base_footprint"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child  link="base_link"/>
+    <!-- ★SIM 접지 클리어런스 0.02m. 원본은 z=0 이라 섀시/마스트 바닥이
+         바퀴 접지면과 같은 평면 -> 섀시가 바닥에 깔려 바퀴 헛돎.
+         본체를 0.02 들어올리고 아래에서 바퀴/캐스터를 같은 양 내려 접지 유지. -->
+    <origin xyz="0 0 0" rpy="0 0 0"/>  <!-- r1 v2: 섀시 바닥 z=0.053 이라 들어올림 보정 불필요 -->
+  </joint>
+
+  <!-- ============================================================
+       base_link : 본체(섀시 400x300x250)
+       ============================================================ -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="-0.147 0 0.178" rpy="0 0 0"/>
+      <geometry><box size="0.360 0.400 0.250"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="-0.147 0 0.178" rpy="0 0 0"/>
+      <geometry><box size="0.360 0.400 0.250"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="-0.147 0 0.178" rpy="0 0 0"/>
+      <mass value="8.0"/>
+      <inertia ixx="0.1483" ixy="0" ixz="0"
+                            iyy="0.1281" iyz="0"
+                                         izz="0.1931"/>
+    </inertial>
+  </link>
+
+  <!-- ============================================================
+       구동 바퀴 (지름 66 -> 반지름 0.033), 트랙폭 0.4194 (r1 v2)
+       ============================================================ -->
+  <link name="left_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.033" length="0.0178"/></geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.033" length="0.0178"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.3"/>
+      <inertia ixx="9.7e-5" ixy="0" ixz="0"
+                            iyy="1.6e-4" iyz="0"
+                                         izz="9.7e-5"/>
+    </inertial>
+  </link>
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child  link="left_wheel"/>
+    <origin xyz="0 0.2097 0.033" rpy="0 0 0"/>  <!-- r1 v2 -->
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.05" friction="0.3"/>  <!-- ★SIM 무명령 활주 제동 (§1.22) — max_wheel_torque 40 대비 미미 -->
+  </joint>
+
+  <link name="right_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.033" length="0.0178"/></geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.033" length="0.0178"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.3"/>
+      <inertia ixx="9.7e-5" ixy="0" ixz="0"
+                            iyy="1.6e-4" iyz="0"
+                                         izz="9.7e-5"/>
+    </inertial>
+  </link>
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child  link="right_wheel"/>
+    <origin xyz="0 -0.2097 0.033" rpy="0 0 0"/>  <!-- r1 v2 -->
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.05" friction="0.3"/>  <!-- ★SIM 무명령 활주 제동 (§1.22) -->
+  </joint>
+
+  <!-- ============================================================
+       볼 캐스터 : 후면, fixed + 낮은 마찰 구로 단순화
+       ============================================================ -->
+  <link name="caster_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.033"/></geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.033"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="9e-6" ixy="0" ixz="0" iyy="9e-6" iyz="0" izz="9e-6"/>
+    </inertial>
+  </link>
+  <joint name="caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="caster_wheel"/>
+    <origin xyz="-0.2575 0 0.033" rpy="0 0 0"/>  <!-- r1 v2 -->
+  </joint>
+
+  <!-- ★SIM 전방 캐스터 추가. 원본은 후방 캐스터 1개뿐이고 마스트가 앞에 있어
+       무게중심(COM_x≈+10.7mm)이 구동축(x=0)보다 앞 -> 지지 삼각형 밖 -> 전방 전복.
+       기존 검증 모델처럼 앞/뒤 캐스터 2개로 안정화. 실제 HW 도 전방 지지 필요. -->
+  <link name="caster_wheel_front">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.015"/></geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.015"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="9e-6" ixy="0" ixz="0" iyy="9e-6" iyz="0" izz="9e-6"/>
+    </inertial>
+  </link>
+  <joint name="caster_front_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="caster_wheel_front"/>
+    <origin xyz="0.1285 0 0.015" rpy="0 0 0"/>  <!-- ★SIM base z=0 에 맞춰 접지 유지 -->
+  </joint>
+
+  <!-- ============================================================
+       LiDAR : ★SIM 원본의 laser_link -> laser 로 이름 변경
+       (SLAM/Nav2 가 /scan frame_id 를 "laser" 로 기대)
+       ============================================================ -->
+  <link name="laser">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.04" length="0.06"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.04" length="0.06"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.2"/>
+      <inertia ixx="1.4e-4" ixy="0" ixz="0" iyy="1.4e-4" iyz="0" izz="1.6e-4"/>
+    </inertial>
+  </link>
+  <joint name="laser_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="laser"/>
+    <origin xyz="$(arg laser_x) $(arg laser_y) $(arg laser_z)"
+            rpy="$(arg laser_roll) $(arg laser_pitch) $(arg laser_yaw)"/>
+  </joint>
+
+  <!-- ============================================================
+       리드스크류 마스트 (지게 총높이 700)
+       ============================================================ -->
+  <link name="lead_screw_base">
+    <visual>
+      <origin xyz="0 0 0.350" rpy="0 0 0"/>
+      <geometry><box size="0.080 0.140 0.700"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.350" rpy="0 0 0"/>
+      <geometry><box size="0.080 0.140 0.700"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0.350" rpy="0 0 0"/>
+      <mass value="1.5"/>
+      <inertia ixx="0.0620" ixy="0" ixz="0" iyy="0.0620" iyz="0" izz="0.0016"/>
+    </inertial>
+  </link>
+  <joint name="lead_screw_base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="lead_screw_base"/>
+    <origin xyz="0.165 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================
+       지게팔 캐리어 : prismatic (z). ★SIM joint_state 플러그인이 상태 publish.
+       ============================================================ -->
+  <link name="lead_screw_carrier">
+    <visual>
+      <origin xyz="0.04 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.080 0.140 0.050"/></geometry>
+      <material name="orange"/>
+    </visual>
+    <collision>
+      <origin xyz="0.04 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.080 0.140 0.050"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0.04 0 0" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00092" ixy="0" ixz="0" iyy="0.00037" iyz="0" izz="0.00108"/>
+    </inertial>
+  </link>
+  <joint name="lift_joint" type="prismatic">
+    <parent link="lead_screw_base"/>
+    <child  link="lead_screw_carrier"/>
+    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0.0" upper="0.5" effort="50" velocity="0.05"/>
+    <!-- ★SIM 자기잠금(웜기어+T스크류 등가): joint_pose_trajectory 플러그인은 마지막
+         포인트 적용 후 조인트를 놓는다(has_trajectory=false) — 마찰 없이는 캐리어가
+         중력으로 낙하해 리프트 "상승 유지" 검증이 플래키해진다(2026-08-20). ODE 조인트
+         friction 은 vel=0 모터(FMax=friction)로 구현되어 위치를 유지한다. 실기 하중
+         5kg·캐리어 0.5kg 기준 20N 이면 충분(effort 50 이내). -->
+    <dynamics damping="1.0" friction="20.0"/>
+  </joint>
+
+  <!-- ============================================================
+       ★SIM 이하 전부 Gazebo 시뮬 전용 추가 블록
+       ============================================================ -->
+
+  <!-- 바퀴 마찰 (없으면 헛바퀴) -->
+  <!-- ★SIM maxVel 0: 접촉 보정속도 주입 차단(§1.22). mu 100/100: 슬립 방지.
+       fdir1="0 0 1" = 차축 방향 (2026-08-20/21 확정, docs/session_wiki/2026-08-20_review_followup):
+       Gazebo 11 은 fdir1 을 collision WorldPose 로 회전한다(소스 확인). 바퀴 collision 은
+       rpy 1.5708 로 눕혀져 collision z = 링크 -y = 차축 → 바퀴가 굴러도 불변.
+       구 "1 0 0"(구름 방향)은 바퀴와 함께 회전해 θ≈90° 마다 마찰축이 접지 법선과 겹치는
+       퇴화 창을 만든다 — 표준 ODE 하네스(바퀴각 0/45/80/90° 프리셋, 0.03g 횡 밀기)에서
+       θ90 yaw 1.6 rad 자발 회전, 스택 stop_probe 에서는 주행 후 정지 30s 에 −0.63m 이동
+       + 이후 전진 명령에 후진(뒤집힌 yaw) 재현. "0 1 0"(collision y = 링크 z) 은 θ0 에서
+       퇴화. 차축 fdir1 은 전 각도·전 방향 안정(하네스 1/2 전수 0 이동).
+       (구 mu2=1.0 "횡력 캡 → 전복 1.8배 미달" 논리는 폐기: 1.8 은 마스트+LiDAR 누락
+       산술 오류로 실제 1.465g 이고, 전복·정지 중 회전의 구동원은 fdir1 퇴화였다.)
+       ※ 차축 fdir1 + 무마찰 캐스터(mu 0) 조합은 ODE 가 6mm/s 등속 전진 크리프를 만든다
+       (기동 직후·정지 후 모두, 결정적) — 원인 분리: 플러그인/ROS/월드/스폰 무관, 순수
+       gzserver 재현, 캐스터 마찰만이 차이. 해법은 캐스터 마찰(아래). 마찰/스프링 값
+       변경 시 check_idle_drift.sh 재실측 필수. -->
+  <gazebo reference="left_wheel">
+    <mu1>100.0</mu1><mu2>100.0</mu2>
+    <kp>1000000.0</kp><kd>100.0</kd>
+    <minDepth>0.001</minDepth><maxVel>0.0</maxVel>
+    <fdir1>0 0 1</fdir1>
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="right_wheel">
+    <mu1>100.0</mu1><mu2>100.0</mu2>
+    <kp>1000000.0</kp><kd>100.0</kd>
+    <minDepth>0.001</minDepth><maxVel>0.0</maxVel>
+    <fdir1>0 0 1</fdir1>
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <!-- 볼 캐스터(앞/뒤): 고정 구 + 마찰 0.5 (2026-08-21). 구 설정 mu 0(무마찰 자유 미끄럼)은
+       차축 fdir1 바퀴와 조합될 때 ODE 가 6mm/s 등속 크리프를 만들었다(정지 중 odom 불변 활주
+       → AMCL belief 드리프트 0.7~1.0m 의 근원, §1.22/§1.25h). 순수 gzserver 스윕: 캐스터
+       mu 0 → 6.1mm/s, 0.05 → 5.0mm/s, 0.3/1.0/3.0 → 0. 0.5 는 여유를 둔 값 — 스키드 드래그
+       0.5×캐스터 하중(~25N) ≈ 12N 로 구동 여유(바퀴당 40N·m/0.033m) 대비 ~1%, 정지 시
+       파킹 브레이크 역할. 실물 볼 캐스터는 구름(구름저항 1~3%)이므로 시뮬 전용 근사값. -->
+  <gazebo reference="caster_wheel">
+    <mu1>0.5</mu1><mu2>0.5</mu2>
+    <kp>1000000.0</kp><kd>100.0</kd>
+    <minDepth>0.001</minDepth><maxVel>0.0</maxVel>
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="caster_wheel_front">
+    <mu1>0.5</mu1><mu2>0.5</mu2>
+    <kp>1000000.0</kp><kd>100.0</kd>
+    <minDepth>0.001</minDepth><maxVel>0.0</maxVel>
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="base_link">
+    <mu1>0.1</mu1><mu2>0.1</mu2>
+    <material>Gazebo/Grey</material>
+  </gazebo>
+  <gazebo reference="lead_screw_base"><material>Gazebo/Grey</material></gazebo>
+  <gazebo reference="lead_screw_carrier"><material>Gazebo/Orange</material></gazebo>
+  <gazebo reference="laser"><material>Gazebo/Blue</material></gazebo>
+
+  <!-- 차동 구동 (트랙폭/바퀴지름은 원본 실측값) -->
+  <gazebo>
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <ros><namespace>/</namespace></ros>
+      <update_rate>30</update_rate>
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.4194</wheel_separation>
+      <wheel_diameter>0.066</wheel_diameter>
+      <max_wheel_torque>40.0</max_wheel_torque>          <!-- ★SIM 0.5m/s 가속 여유 -->
+      <max_wheel_acceleration>8.0</max_wheel_acceleration>
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>true</publish_wheel_tf>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+    </plugin>
+  </gazebo>
+
+  <!-- 조인트 상태 publish (바퀴 + 리프트) -->
+  <gazebo>
+    <plugin name="joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+      <ros><namespace>/</namespace></ros>
+      <update_rate>30</update_rate>
+      <joint_name>left_wheel_joint</joint_name>
+      <joint_name>right_wheel_joint</joint_name>
+      <joint_name>lift_joint</joint_name>
+    </plugin>
+  </gazebo>
+
+  <!-- ★SIM 리프트 구동 (2026-08-20): lift_joint 를 시뮬에서 움직일 수단.
+       /set_lift_trajectory (trajectory_msgs/JointTrajectory) 수신 시 조인트를
+       목표 위치로 보간 이동. 실기는 웜기어+T스크류 컨트롤러가 담당(§hardware_spec)
+       — 이 플러그인은 시뮬 mock. 사용처: smoke 의 lift_cycle.py (WITH_LIFT=1). -->
+  <gazebo>
+    <plugin name="lift_trajectory" filename="libgazebo_ros_joint_pose_trajectory.so">
+      <ros>
+        <namespace>/</namespace>
+        <remapping>set_joint_trajectory:=set_lift_trajectory</remapping>
+      </ros>
+      <update_rate>10</update_rate>
+    </plugin>
+  </gazebo>
+
+  <!-- LiDAR 센서 (RPLiDAR A1 근사: 360도, 8m), frame_name=laser -->
+  <gazebo reference="laser">
+    <sensor name="lidar" type="ray">
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan><horizontal>
+          <samples>360</samples><resolution>1</resolution>
+          <min_angle>-3.14159</min_angle><max_angle>3.14159</max_angle>
+        </horizontal></scan>
+        <range><min>0.15</min><max>8.0</max><resolution>0.01</resolution></range>
+        <noise><type>gaussian</type><mean>0.0</mean><stddev>0.01</stddev></noise>
+      </ray>
+      <plugin name="lidar_plugin" filename="libgazebo_ros_ray_sensor.so">
+        <ros><remapping>~/out:=scan</remapping></ros>
+        <output_type>sensor_msgs/LaserScan</output_type>
+        <frame_name>laser</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>

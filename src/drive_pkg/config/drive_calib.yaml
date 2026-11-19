@@ -1,0 +1,26 @@
+# R1B 지면 캘리브레이션에서 확정 후 갱신 (스펙 §5.5)
+# 초기값 근거: docs/hardware_spec.md §1.3 (바퀴 지름 0.066m). 간격은 HW팀 r1.urdf v2(2026-09-13) ±0.2097 → 0.4194m
+# 이전 값 0.51324 (회전 odom 실측 검증 전 ⚠️미확인)
+packagu_opencr_bridge:
+  ros__parameters:
+    wheel_radius: 0.033
+    wheel_separation: 0.4323  # 2026-09-14 바닥 360° 시험: odom 362.46° vs 스캔매칭 실제 351.64° → 0.4194×1.0308 (실효 트랙폭, URDF 기하는 ±0.2097 유지)
+    left_sign: 1.0
+    right_sign: 1.0
+    cmd_timeout_sec: 0.5
+    cmd_rate_hz: 20.0
+    # 아래 안전 한계와 covariance는 H01/H02 실측 전 [제안값].
+    feedback_timeout_sec: 0.5
+    imu_timeout_sec: 0.5
+    max_feedback_dt_sec: 0.25
+    max_linear_speed: 0.25
+    max_angular_speed: 1.0
+    max_wheel_rpm: 48.0  # 2026-09-13 firmware MAX_ABS_RPM 48 업로드(HW 60 rpm의 80%)
+    max_wheel_accel_rpm_s: 60.0
+    # 2026-09-13: 0.0 = max_wheel_rpm과 같다(현행 동작). 측정 RPM이 30을 조금 넘는 피드백 줄을 버려
+    # drive ready가 끊기는 'feedback rpm over limit'이 H2 계측으로 확인된 뒤에만, 승인받고
+    # [제안값] 33.0으로 A/B한다. 명령 상한 max_wheel_rpm과 펌웨어 MAX_ABS_RPM 30은 바꾸지 않는다.
+    feedback_max_abs_rpm: 56.0  # 2026-09-13 받침대 44 rpm 명령에서 F 48.548 오버슈트로 drive ready 끊김 → 명령 상한 48 유지, 피드백 타당성만 56
+    require_feedback_before_motion: true
+    imu_frame: imu_link
+    publish_tf: true  # EKF를 추가하기 전에는 bridge가 odom->base_footprint 단일 발행자

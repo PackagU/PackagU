@@ -1,0 +1,17 @@
+nav_safety_gate:
+  ros__parameters:
+    input_cmd_topic: /cmd_vel
+    output_cmd_topic: /cmd_vel_safe
+    scan_topic: /scan
+    odom_topic: /odom
+    drive_ready_topic: /drive/ready
+    software_stop_topic: /nav_safety/stop
+    # H01/H02 현장 검증 전 안전 기본값은 모두 [제안값].
+    sensor_timeout_sec: 0.5
+    drive_ready_timeout_sec: 0.5
+    command_timeout_sec: 0.3
+    publish_rate_hz: 20.0
+    # 텔레옵은 직진/제자리 회전 중 하나만 사용하며 각각 firmware 30rpm 아래다.
+    # Nav2의 동시 선·각속도는 nav2_params.yaml에서 더 낮게 제한한다.
+    max_linear_speed: 0.12  # 2026-09-13 Nav2 0.10 + 여유(초과 시 0 출력)
+    max_angular_speed: 0.35

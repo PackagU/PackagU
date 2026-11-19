@@ -1,0 +1,107 @@
+# 전 항목 [가정값/시뮬 제안값]. 실물 보정값이 아니다. 단위 m, rad, s.
+source: "[가정값] 독립 집기 검증. 실물 치수·카메라 외부 보정·초음파 반사 특성 측정 필요"
+seed: 20261029
+robot:
+  mast_x: 0.02
+  fork_root_x: 0.10
+  fork_tip_x: 0.26
+  fork_width: 0.14
+  fork_thickness: 0.02
+  tine_width: 0.035
+  fork_z: 0.05
+  body_front_x: 0.033
+  body_half_width: 0.219
+  body_rear_x: -0.327
+pallet:
+  depth: 0.28
+  width: 0.40
+  pocket_width: 0.32
+  pocket_height: 0.10
+  deck_thickness: 0.02
+  parcel_size_m: [0.28, 0.30, 0.40]
+  parcel_front_offset_m: 0.0 # 초음파가 보는 박스 앞면과 포켓 입구의 x 차이
+  insertion_depth: 0.15
+  insertion_tolerance: 0.008 # 140 mm 팔레트 중심을 지나고 160 mm 유효 포크 끝단 여유 2 mm 유지
+  insertion_end_margin: 0.002
+  clearance_margin: 0.01
+  max_yaw: 0.07
+  marker_size: 0.12
+  marker_facets: # 정면 평면 표식의 각도 모호성을 없애는 고정 두 면 지그. 둘 다 보여야 유효
+    - {id: 23, y: 0.07, yaw: 0.55}
+    - {id: 24, y: -0.07, yaw: -0.55}
+  marker_offset_xyz: [-0.003, 0.0, 0.90] # 마스트 시야 가림을 피한 고정 표식 지지대. z 바닥 기준
+camera:
+  topic: /pickup/body_camera/image_raw
+  info_topic: /pickup/body_camera/camera_info
+  mount_xyz: [-0.12, 0.020, 0.90] # 기존 URDF 높이 0.70 m 마스트 위 고정 브래킷. 실측 필요
+  mount_rpy: [0.0, 0.0, 0.0] # Gazebo x 전방, y 좌측, z 위
+  width: 640
+  height: 480
+  hfov: 1.35
+  rate_hz: 8
+  range_min: 0.04
+  range_max: 3.0
+  noise_stddev: 0.0
+  dropout_probability: 0.0 # vision input fault injector (after actual rendering)
+  max_age: 0.45
+  max_reprojection_px: 2.0
+front_range:
+  topic: /pickup/range/approach
+  mount_xyz: [0.04, 0.0, 0.15] # 팔레트에 고정된 박스 앞면 측정
+  mount_rpy: [0.0, 0.0, 0.0]
+  fov: 0.20
+  rate_hz: 15
+  range_min: 0.02
+  range_max: 3.0
+  noise_stddev: 0.001
+  dropout_probability: 0.0
+  max_age: 0.30
+  camera_disagreement: 0.045
+height_range:
+  topic: /pickup/range/lift_limit
+  mount_xyz: [0.22, 0.0, 0.65]
+  mount_rpy: [0.0, 1.57079632679, 0.0] # 아래 방향. 접근용과 별도 센서
+  fov: 0.10
+  rate_hz: 15
+  range_min: 0.02
+  range_max: 1.0
+  noise_stddev: 0.001
+  dropout_probability: 0.0
+  stop_below: 0.10 # 기존 펌웨어 상승 제한 대응. 접근 정지 거리 계산에는 사용 안 함
+  max_age: 0.30
+control:
+  rate_hz: 20
+  predock_distance: 0.62
+  linear_speed: 0.09
+  angular_speed: 0.40
+  approach_speed: 0.025
+  alignment_lateral: 0.030 # 내부 한쪽 유효 여유 80 mm 중 30 mm 사용
+  alignment_yaw: 0.050
+  realign_lateral: 0.050 # 50 + 삽입 yaw 휩쓸림 10 < 유효 여유 80 mm
+  realign_yaw: 0.065
+  retreat_distance: 0.35
+  realign_retreat_distance: 0.50 # 차동 구동으로 옆 오차를 고칠 전후 여유
+  max_retries: 3
+  acquire_timeout: 8.0
+  stage_timeout: 65.0
+  total_timeout: 180.0
+  sensor_failure_timeout: 0.8
+  command_timeout: 0.25
+  odom_max_age: 0.3
+  lift_target: 0.08
+  lift_speed: 0.025
+  lift_minimum: 0.025
+  stop_settle: 0.5
+cases:
+  front: {pallet_pose: [1.0, 0.0, 0.0]}
+  left: {pallet_pose: [1.0, 0.18, 0.0]}
+  right: {pallet_pose: [1.0, -0.18, 0.0]}
+  angled: {pallet_pose: [1.10, 0.10, 0.20]}
+  near: {pallet_pose: [0.70, -0.05, -0.10]}
+  far: {pallet_pose: [1.45, 0.08, 0.0]}
+  image_loss: {pallet_pose: [1.0, 0.0, 0.0], fault: image_loss}
+  image_stale: {pallet_pose: [1.0, 0.0, 0.0], fault: image_stale}
+  range_loss: {pallet_pose: [1.0, 0.0, 0.0], fault: range_loss}
+  range_stale: {pallet_pose: [1.0, 0.0, 0.0], fault: range_stale}
+  range_outlier: {pallet_pose: [1.0, 0.0, 0.0], fault: range_outlier}
+  range_nan: {pallet_pose: [1.0, 0.0, 0.0], fault: range_nan}

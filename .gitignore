@@ -1,0 +1,35 @@
+# Secrets and keys
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# ROS 2 / Simulation generated outputs
+build/
+install/
+log/
+logs/
+generated/
+*.bag
+*.db3
+*.mcap
+*.mp4
+*.webm
+*.mov
+*.mkv
+src/slam_pkg/maps/kku_virtual/**/*.pgm
